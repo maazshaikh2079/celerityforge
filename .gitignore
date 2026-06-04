@@ -1,0 +1,10 @@
+.vscode
+__pycache__
+.venv
+.env
+*-ref.*
+data/*
+pages
+stitch_pc_shop_manager
+init_fa.sh
+frontend

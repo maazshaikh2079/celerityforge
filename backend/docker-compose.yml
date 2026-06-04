@@ -1,0 +1,38 @@
+# DB Connection URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@localhost:5432/${POSTGRES_DB:-celerityforge_db}
+
+name: celerityforge-dev
+
+services:
+  db:
+    image: postgres:16-alpine  # Alpine for smaller size
+    restart: unless-stopped  # FIXED TYPO
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}  # FIXED VARIABLE REFERENCE
+      POSTGRES_DB: ${POSTGRES_DB:-celerityforge_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db-data-vol:/var/lib/postgresql/data
+    healthcheck:
+      # Ensures Adminer doesn't try to connect before Postgres is actually ready
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-celerityforge_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  adminer:  # FIXED INDENTATION (Now a sibling of db)
+    image: adminer
+    restart: unless-stopped  # Handle reboots gracefully
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        # Waits for the healthcheck above to pass
+        condition: service_healthy
+
+volumes:
+  db-data-vol:
+    # Explicit industry-standard naming: <project>-<environment>-<service>-<resource_type>
+    name: celerityforge-dev-postgres-data-vol
