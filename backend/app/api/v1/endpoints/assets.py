@@ -79,11 +79,14 @@ def get_inventory_summary_stats(
 @router.get("/top", status_code=status.HTTP_200_OK, response_model=List[AssetTopProductOut])
 async def list_top_products(
     limit: int = Query(5, ge=1, le=20, description="Number of top products to fetch"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: Session = Depends(get_current_admin)
 ):
     """
     Retrieve the highest-grossing products based on total revenue.
     """
+
+    logger.info(f"GET req in `/assets/top` by {current_admin.email}")
 
     top_products = db.query(DBAsset).order_by(DBAsset.total_revenue.desc()).limit(limit).all()
 
@@ -93,11 +96,15 @@ async def list_top_products(
 # for main dashboard sales by category pie chart
 @router.get("/sales/categories", status_code=status.HTTP_200_OK, response_model=list[CategorySalesOut])
 async def get_sales_by_category(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin: Session = Depends(get_current_admin)
 ):
     """
     Retrieve total sales revenue grouped by asset category to power dashboard charts.
     """
+
+    logger.info(f"GET req in `/assets/sales/categories` by {current_admin.email}")
+
     try:
         # THE AGGREGATION QUERY
         # Translates to: SELECT category, SUM(total_revenue) FROM assets GROUP BY category;
@@ -215,12 +222,14 @@ async def create_asset(
 
             image_url = await run_in_threadpool(upload_on_cloudinary, file_bytes)
 
-        # 1. CALCULATE AUTOMATIC STOCK STATUS
+        # CALCULATE AUTOMATIC STOCK STATUS
         initial_stock_status = StockStatus.IN_STOCK
-        if stock <= min_stock:
+        if stock <= 0:
+            initial_stock_status = StockStatus.OUT_OF_STOCK
+        elif stock <= min_stock:
             initial_stock_status = StockStatus.LOW_STOCK
 
-        # 2. MAP TO DATABASE MODEL
+        # MAP TO DATABASE MODEL
         new_asset = DBAsset(
             image_url=image_url,
             name=name,
@@ -321,7 +330,7 @@ async def update_asset(
             asset.min_stock = min_stock
 
         # RECALCULATE AUTOMATIC STOCK STATUS
-        if asset.stock == 0:
+        if asset.stock <= 0:
             asset.stock_status = StockStatus.OUT_OF_STOCK
         elif asset.stock <= asset.min_stock:
             asset.stock_status = StockStatus.LOW_STOCK
