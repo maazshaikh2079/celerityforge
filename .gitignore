@@ -5,7 +5,7 @@ node_modules
 .env
 *-ref.*
 data/*
-pages
+designs
 stitch_pc_shop_manager
 init_fa.sh
 temp
