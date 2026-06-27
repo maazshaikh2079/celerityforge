@@ -1,0 +1,78 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap");
+
+@import "tailwindcss";
+@source "./*";
+
+@theme {
+  /* --- TYPOGRAPHY FAMILIES --- */
+  --font-display: "Manrope", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* --- TYPOGRAPHY SIZES --- */
+  --text-display: 48px;
+  --text-headline-lg: 32px;
+  --text-headline-md: 24px;
+  --text-headline-sm: 18px;
+  --text-body-lg: 16px;
+  --text-body-md: 14px;
+  --text-body-sm: 12px;
+  --text-label: 12px; /* For your uppercase/spaced labels */
+
+  /* --- CORE COLORS --- */
+  --color-primary: #121212;
+  --color-primary-container: #1c1b1b;
+  --color-on-primary: #ffffff;
+
+  --color-secondary: #008542;
+  --color-secondary-dim: #006d35;
+  --color-secondary-container: #8df9a8;
+  --color-on-secondary: #ffffff;
+
+  --color-tertiary: #d97706;
+  --color-tertiary-container: #2f1500;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+
+  --color-neutral: #64748b;
+
+  /* --- SURFACES & ELEVATION --- */
+  /* Level 0 */
+  --color-background: #f8f9ff;
+  --color-surface: #f8f9ff;
+  /* Level 1 */
+  --color-surface-container-lowest: #ffffff;
+  /* Level 2 */
+  --color-input-bg: #f1f5f9;
+
+  --color-surface-dim: #cbdbf5;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #444748;
+
+  /* --- BORDERS & OUTLINES --- */
+  --color-border: #e2e8f0;
+  --color-outline: #747878;
+  --color-outline-variant: #c4c7c7;
+
+  /* --- SHAPES (BORDER RADIUS) --- */
+  --radius-sm: 6px;      /* Small elements, tags, nested items */
+  --radius-xl: 12px;     /* Primary standard: cards, buttons, inputs */
+  --radius-full: 9999px; /* Status dots, pills */
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-on-surface);
+    /* Improves text rendering for that crisp "precision-tooled" look */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
