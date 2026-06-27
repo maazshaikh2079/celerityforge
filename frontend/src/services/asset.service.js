@@ -36,13 +36,15 @@ const getSummaryStats = async () => {
 };
 
 // GET /api/v1/assets/top — Fetch top products by revenue
-const getTopProducts = async (limit = 5) => {
+const getTopProducts = async (limit = 5, adminToken) => {
   try {
     // const token = localStorage.getItem("token");
     const response = await axios.get(
       `${BASE_URL}${API_PATHS.ASSETS.GET_TOP_PRODUCTS}`,
-      { params: { limit } }
-      // { headers: { Authorization: `Bearer ${token}` } }
+      {
+        params: { limit },
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }
     );
     return response.data;
   } catch (error) {
@@ -54,12 +56,12 @@ const getTopProducts = async (limit = 5) => {
 };
 
 // GET /api/v1/assets/sales/categories — Fetch sales by category
-const getSalesByCategory = async () => {
+const getSalesByCategory = async (adminToken) => {
   try {
     // const token = localStorage.getItem("token");
     const response = await axios.get(
-      `${BASE_URL}${API_PATHS.ASSETS.GET_SALES_BY_CATEGORY}`
-      // { headers: { Authorization: `Bearer ${token}` } }
+      `${BASE_URL}${API_PATHS.ASSETS.GET_SALES_BY_CATEGORY}`,
+      { headers: { Authorization: `Bearer ${adminToken}` } }
     );
     return response.data;
   } catch (error) {
