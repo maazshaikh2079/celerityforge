@@ -7,6 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
+from decimal import Decimal
+
 
 from app.db.session import get_db
 from app.models.order import Order as DBOrder, OrderStatus
@@ -86,7 +88,7 @@ async def list_orders(
 
 # stats summary cards
 @router.get("/stats/summary", status_code=status.HTTP_200_OK, response_model=OrderStatsSummary)
-async def get_order_stats_summary(
+async def get_orders_stats_summary(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
@@ -106,15 +108,25 @@ async def get_order_stats_summary(
             func.count(DBOrder.id).label("count"),
             func.coalesce(func.sum(DBOrder.total_amount), 0).label("total_value")
         )
+        # This translates to: SELECT status, COUNT(id), SUM(total_amount) FROM orders
 
         # IMPLICIT RBAC FILTERING
         # If a Technician views the dashboard, they only see stats for their own orders
         if current_user.__tablename__ == "technicians":
             query = query.filter(DBOrder.assignee.contains({"id": str(current_user.id)}))
+            # This translates to: SELECT status, COUNT(id), SUM(total_amount) FROM orders WHERE assignee @> '{"id": "their-uuid"}'::jsonb
+
 
         # EXECUTE THE GROUP BY
         # This translates to: SELECT status, COUNT(id), SUM(total_amount) FROM orders GROUP BY status;
         raw_stats = query.group_by(DBOrder.status).all()
+        # eg:
+        # raw_stats =
+        # [
+        #     ("Pending", 100, 100000),
+        #     ("Paid", 100, 100000),
+        #     ("Cancelled", 100, 100000)
+        # ]
 
         # INITIALIZE THE RESPONSE DICTIONARY
         stats_map = {
@@ -268,6 +280,12 @@ async def create_order(
                     detail=f"Asset '{item.name}' (ID: {item.id}) not found in database."
                 )
 
+            if item.quantity < 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Order quantity for '{item.name}' must be at least 1."
+                )
+
             if asset.stock < item.quantity:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -376,7 +394,7 @@ async def update_order(
                         asset.stock_status = StockStatus.IN_STOCK
 
                     asset.units_sold -= old_item["quantity"]
-                    asset.total_revenue -= float(old_item["total_price"])
+                    asset.total_revenue -= Decimal(str(old_item["total_price"]))
 
             # Pre-flight Check the New Items
             for new_item in order_in.items:
@@ -406,14 +424,14 @@ async def update_order(
                     asset.stock_status = StockStatus.IN_STOCK
 
                 asset.units_sold += new_item.quantity
-                asset.total_revenue += float(new_item.total_price)
+                asset.total_revenue += Decimal(str(new_item.total_price))
 
             # Overwrite the JSONB Array
             order.items = jsonable_encoder(order_in.items)
 
         # UPDATE REMAINING OPTIONAL FIELDS
-        # if order_in.assignee is not None:
-        #     order.assignee = jsonable_encoder(order_in.assignee)
+        if order_in.assignee is not None:
+            order.assignee = jsonable_encoder(order_in.assignee)
         if order_in.customer is not None:
             order.customer = jsonable_encoder(order_in.customer)
         if order_in.notes is not None:
@@ -549,7 +567,8 @@ async def cancel_order(
                     asset.stock_status = StockStatus.IN_STOCK
 
                 asset.units_sold -= item["quantity"]
-                asset.total_revenue -= float(item["total_price"])
+                # FIX: Convert to string first, then to Decimal to prevent float precision loss!
+                asset.total_revenue -= Decimal(str(item["total_price"]))
 
         # UPDATE ORDER STATUS
         order.status = cancel_in.status

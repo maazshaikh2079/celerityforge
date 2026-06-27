@@ -30,8 +30,7 @@ class Technician(Base):
     is_available: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # # Soft delete:
-    # # is_deleted || is_fired
-    # is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # # is_deleted || is_fired || is_active Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

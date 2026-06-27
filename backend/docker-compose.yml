@@ -5,12 +5,12 @@ name: celerityforge-dev
 services:
   db:
     image: postgres:16-alpine  # Alpine for smaller size
-    restart: unless-stopped  # FIXED TYPO
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}  # FIXED VARIABLE REFERENCE
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-celerityforge_db}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
@@ -22,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
 
-  adminer:  # FIXED INDENTATION (Now a sibling of db)
+  adminer:
     image: adminer
     restart: unless-stopped  # Handle reboots gracefully
     ports:

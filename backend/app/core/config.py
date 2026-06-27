@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     CLOUDINARY_FOLDER: str
 
     # # Setting allowed image types
-    ALLOWED_MIME_TYPES: list[str] = ["image/jpeg", "image/png", "image/jpg", "image/gif"]
+    ALLOWED_IMAGE_MIME_TYPES: list[str] = ["image/jpeg", "image/png", "image/jpg", "image/gif"]
 
     RAZORPAY_KEY_ID: str
     RAZORPAY_KEY_SECRET: str

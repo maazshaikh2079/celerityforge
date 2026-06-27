@@ -44,7 +44,7 @@ def delete_from_cloudinary(image_url: str, folder: str = settings.CLOUDINARY_FOL
         img_file_name = image_url.split("/")[-1] # "tklrxe042qhb5kmu1n9n.jpg"
         img_public_id = img_file_name.split(".")[0] # "tklrxe042qhb5kmu1n9n"
 
-        response = cloudinary.uploader.destory(f"{folder}/{img_public_id}")
+        response = cloudinary.uploader.destroy(f"{folder}/{img_public_id}")
         logger.info(f"Cloudinary image deleted: {response}")
 
     except Exception as e:

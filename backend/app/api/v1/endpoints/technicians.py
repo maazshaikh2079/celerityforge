@@ -27,34 +27,36 @@ router = APIRouter()
 
 @router.get("/list", response_model=list[TechnicianOut])
 def list_technicians(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
 ):
     """Fecth all registered technicians."""
 
-    logger.info("GET req in `/technicians/list`")
+    logger.info(f"GET req in `/technicians/list` by Admin {current_admin.email}")
 
     return db.query(DBTechnician).all()
 
 
-@router.get("/{techinician_id}", response_model=TechnicianOut)
-def get_technician_by_id(
-    technician_id: uuid.UUID,
-    db: Session = Depends(get_db)
-):
-    """Fecth admin details"""
+# Test route for fetching technician details (public route)
+# @router.get("/{techinician_id}", response_model=TechnicianOut)
+# def get_technician_by_id(
+#     technician_id: uuid.UUID,
+#     db: Session = Depends(get_db)
+# ):
+#     """Fetch technician details (Public route)"""
 
-    logger.info("GET req in `/admin/details`")
+#     logger.info(f"GET req in `/technicians/{technician_id}`")
 
-    # FIND THE TECHNICIAN
-    technician = db.query(DBTechnician).filter(DBTechnician.id == technician_id).first()
-    if not technician:
-        logger.warning(f"Update failed: Technician {technician_id} not found.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Technician not found."
-        )
+#     # FIND THE TECHNICIAN
+#     technician = db.query(DBTechnician).filter(DBTechnician.id == technician_id).first()
+#     if not technician:
+#         logger.warning(f"Technician with id {technician_id} not found.")
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail="Technician not found."
+#         )
 
-    return technician
+#     return technician
 
 
 @router.get("/{technician_id}", status_code=status.HTTP_200_OK, response_model=TechnicianOut)
@@ -63,9 +65,9 @@ def get_technician_profile(
     db: Session = Depends(get_db),
     current_user: DBAdmin | DBTechnician = Depends(get_current_user)
     ):
-    """Fetch the currently logged-in admin's profile details."""
+    """Fetch the currently logged-in technician's profile details."""
 
-    logger.info(f"GET req in `/technicians/{technician_id}` by {current_user.email}")
+    logger.info(f"GET req in `/technicians/{technician_id}` for user {current_user.email}")
 
     technician = db.query(DBTechnician).filter(DBTechnician.id == technician_id).first()
 
@@ -74,7 +76,7 @@ def get_technician_profile(
             logger.warning(f"Unauthorized view attempt by Technician {current_user.id} on Technician {technician_id}'s Profile")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to update the profile of other technicians."
+                detail="You do not have permission to view the profile of other technicians."
             )
 
     return technician
@@ -108,7 +110,7 @@ async def register_technician(
         profile_image_url = "https://i.ibb.co/vxLH9d92/default-avatar-light.png"
 
         if profile_image:
-            if profile_image.content_type not in settings.ALLOWED_MIME_TYPES:
+            if profile_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
@@ -147,17 +149,19 @@ async def register_technician(
         )
 
         return {
-            "technician_registration": {
-                "message": "Technician registered successfully.",
-                "technician_id": new_technician.id,
+            "status_code": status.HTTP_200_OK,
+            "message": "Technician registered successfully.",
+            "access_token": token,
+            "token_type": "bearer",
+            "technician": {
+                "id": new_technician.id,
                 "profile_image_url": profile_image_url,
                 "name": new_technician.name,
                 "email": new_technician.email,
                 "phone": new_technician.phone,
                 "is_available": new_technician.is_available,
                 "created_at": new_technician.created_at,
-                "updated_at": new_technician.updated_at,
-                "token": token  # access token
+                "updated_at": new_technician.updated_at
             }
         }
 
@@ -174,7 +178,7 @@ async def register_technician(
 @router.post("/login", status_code=status.HTTP_200_OK, response_model=dict)
 async def login_technician(
     # technician_credentials: TechnicianLogin,
-    technician_credentials: OAuth2PasswordRequestForm = Depends(),
+    technician_credentials: OAuth2PasswordRequestForm = Depends(), # This tells FastAPI to expect Form Data from Swagger UI
     db: Session = Depends(get_db)
 ):
     """Authenticate Technician and return a JWT token."""
@@ -205,19 +209,19 @@ async def login_technician(
 
         # RETURN SECURE PAYLOAD
         return {
+            "status_code": status.HTTP_200_OK,
+            "message": "Technician login successfully.",
             "access_token": token,   # V
             "token_type": "bearer",  # Swagger specifically looks for these two exact keys
-            "technician_login": {
-                "message": "Technician login successfully.",
-                "technician_id": technician.id,
+            "technician": {
+                "id": technician.id,
                 "profile_image_url": technician.profile_image_url,
                 "name": technician.name,
                 "email": technician.email,
                 "phone": technician.phone,
                 "is_available": technician.is_available,
-                "created_at":technician.created_at,
-                "updated_at":technician.updated_at,
-                "token": token  # access token
+                "created_at": technician.created_at,
+                "updated_at": technician.updated_at,
             }
         }
 
@@ -236,6 +240,7 @@ async def update_technician_profile(
     background_tasks: BackgroundTasks,
     technician_id: uuid.UUID,
     name: str | None = Form(None),
+    email: str | None = Form(None),  # Only Admin can update technician's email
     phone: int | None = Form(None),
     profile_image: UploadFile | None = File(None),
     db: Session = Depends(get_db),
@@ -252,35 +257,62 @@ async def update_technician_profile(
         technician = db.query(DBTechnician).filter(DBTechnician.id == technician_id).first()
         if not technician:
             logger.warning(f"Update failed: Technician {technician_id} not found.")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Technician not found."
-            )
+            # raise HTTPException(
+            #     status_code=status.HTTP_404_NOT_FOUND,
+            #     detail="Technician not found."
+            # )
+            return {
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "error_message": "Technician not found."
+            }
 
 
         if current_user.__tablename__ == "technicians":
             if str(technician_id) != str(current_user.id):
                 logger.warning(f"Unauthorized update attempt by Technician {current_user.id} on Technician {technician_id}'s Profile")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have permission to update the profile of other technicians."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_403_FORBIDDEN,
+                #     detail="You (Technician) can't update other technicians' profiles."
+                # )
+                return {
+                    "status_code": status.HTTP_403_FORBIDDEN,
+                    "error_message": "You (Technician) can't update other technicians' profiles."
+                }
+
+            if email is not None:
+                logger.warning(f"Forbidden: Technician {current_user.id} tried to update their email.")
+                # raise HTTPException(
+                #     status_code=status.HTTP_403_FORBIDDEN,
+                #    detail="You (Technician) can't update your email. Contact Admin."
+                # )
+                return {
+                    "status_code": status.HTTP_403_FORBIDDEN,
+                    "error_message": "You (Technician) can't update your email. Contact Admin."
+                }
 
         # HANDLE OPTIONAL IMAGE UPLOAD
         if profile_image:
-            if profile_image.content_type not in settings.ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
-                )
+            if profile_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
+                # raise HTTPException(
+                #     status_code=status.HTTP_400_BAD_REQUEST,
+                #     detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
+                # )
+                return {
+                    "status_code": status.HTTP_400_BAD_REQUEST,
+                    "error_message": "Invalid file type. Only JPEG, PNG, and GIF are allowed."
+                }
 
             file_bytes = await profile_image.read()
 
             if len(file_bytes) > 2000000:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File too large. Maximum size is 2MB."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_400_BAD_REQUEST,
+                #     detail="File too large. Maximum size is 2MB."
+                # )
+                return {
+                    "status_code": status.HTTP_400_BAD_REQUEST,
+                    "error_message": "File too large. Maximum size is 2MB."
+                }
 
             old_profile_image_url = technician.profile_image_url
 
@@ -297,6 +329,9 @@ async def update_technician_profile(
 
         if phone is not None:
             technician.phone = phone
+
+        if email is not None:  # Only Admin can update technician's email
+            technician.email = email
 
         db.commit()
         db.refresh(technician)
@@ -393,39 +428,61 @@ async def update_technician_password(
         technician = db.query(DBTechnician).filter(DBTechnician.id == technician_id).first()
         if not technician:
             logger.warning(f"Password update failed: Technician {technician_id} not found.")
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Technician not found."
-            )
+            # raise HTTPException(
+            #     status_code=status.HTTP_404_NOT_FOUND,
+            #     detail="Technician not found."
+            # )
+            return {
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "error_message": "Technician not found."
+            }
+
 
         # TECHNICIAN-SPECIFIC SECURITY CHECKS
         if current_user.__tablename__ == "technicians":
             if str(technician_id) != str(current_user.id):
                 logger.warning(f"Unauthorized update attempt by Technician {current_user.id} on Technician {technician_id}'s password")
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have permission to update the password of other technicians."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_403_FORBIDDEN,
+                #     detail="You do not have permission to update the password of other technicians."
+                # )
+                return {
+                    "status_code": status.HTTP_403_FORBIDDEN,
+                    "error_message": "You do not have permission to update the password of other technicians."
+                }
 
             if not password_in.current_password:
                 logger.warning(f"Failed password update attempt for {current_user.email}: Missing current_password payload.")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="You must provide your current password to update it."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_400_BAD_REQUEST,
+                #     detail="You must provide your current password to update it."
+                # )
+                return {
+                    "status_code": status.HTTP_400_BAD_REQUEST,
+                    "error_message": "You must provide your current password to update it."
+                }
+
 
             if not pwd_context.verify(password_in.current_password, current_user.password_hash):
                 logger.warning(f"Failed password update attempt for {current_user.email}: Incorrect current password.")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Incorrect current password."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_401_UNAUTHORIZED,
+                #     detail="Incorrect current password."
+                # )
+                return {
+                    "status_code": status.HTTP_401_UNAUTHORIZED,
+                    "error_message": "Incorrect current password."
+                }
 
             if password_in.current_password == password_in.new_password:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="New password cannot be the same as the current password."
-                )
+                # raise HTTPException(
+                #     status_code=status.HTTP_400_BAD_REQUEST,
+                #     detail="New password cannot be the same as the current password."
+                # )
+                return {
+                    "status_code": status.HTTP_400_BAD_REQUEST,
+                    "error_message": "New password cannot be the same as the current password."
+                }
 
         # APPLY THE NEW PASSWORD (Reaches here if Admin, OR if Technician passed all checks)
         technician.password_hash = pwd_context.hash(password_in.new_password)
@@ -441,7 +498,11 @@ async def update_technician_password(
         raise he
     except Exception as e:
         logger.error(f"Failed to reset password for technician {technician_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal Server Error during technician password reset."
-        )
+        # raise HTTPException(
+        #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     detail="Internal Server Error during technician password reset."
+        # )
+        return {
+            "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "error_message": "Internal Server Error during technician password reset."
+        }

@@ -25,101 +25,27 @@ router = APIRouter()
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[AssetOut])
 def get_all_assets(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user) # Automatically secures the route for BOTH roles (RBAC)
+    # current_user = Depends(get_current_user) # Automatically secures the route for BOTH roles (RBAC)
 ):
     """Fetch all inventory assets. Accessible by Admin and Technicians."""
 
-    logger.info(f"GET req in `/assets/` by {current_user.email} ({current_user.__tablename__})")
+    # logger.info(f"GET req in `/assets/` by {current_user.email} ({current_user.__tablename__})")
+    logger.info(f"GET req in `/assets/`")
 
     assets = db.query(DBAsset).all()
 
     return assets
 
-
-# def create_asset / add_new_assest (only admin)
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=AssetOut)
-async def create_asset(
-    name: str = Form(...),
-    description: str = Form(...),
-    category: str = Form(...),
-    unit_price: Decimal = Form(...),
-    stock: int = Form(...),
-    min_stock: int = Form(...),
-    asset_image: UploadFile | None = File(None),  # Optional file upload
-    db: Session = Depends(get_db),
-    current_admin = Depends(get_current_admin)
-):
-    """Create a new inventory asset. Strictly restricted to Admins."""
-
-    logger.info(f"POST req in `/assets/` by Admin {current_admin.email}")
-
-    try:
-        # HANDLE OPTIONAL IMAGE UPLOAD & DEFAULT URL
-        image_url = "https://i.ibb.co/tMtqLqWm/container.jpg"
-
-        if asset_image:
-            if asset_image.content_type not in settings.ALLOWED_MIME_TYPES:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
-                )
-
-            file_bytes = await asset_image.read()
-
-            if len(file_bytes) > 2000000: # 2MB limit
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File too large. Maximum size is 2MB."
-                )
-
-            image_url = await run_in_threadpool(upload_on_cloudinary, file_bytes)
-
-        # 1. CALCULATE AUTOMATIC STOCK STATUS
-        initial_stock_status = StockStatus.IN_STOCK
-        if stock <= min_stock:
-            initial_stock_status = StockStatus.LOW_STOCK
-
-        # 2. MAP TO DATABASE MODEL
-        new_asset = DBAsset(
-            image_url=image_url,
-            name=name,
-            description=description,
-            category=category,
-            unit_price=unit_price,
-            stock=stock,
-            min_stock=min_stock,
-            stock_status=initial_stock_status
-            # units_sold and total_revenue automatically default to 0
-        )
-
-        # SAVE TO DATABASE
-        db.add(new_asset)
-        db.commit()
-        db.refresh(new_asset)
-
-        return new_asset
-
-    except HTTPException as he:
-        # Catch explicit HTTPExceptions (like file size/type errors) so they don't trigger the 500 fallback
-        raise he
-    except Exception as e:
-        logger.error(f"Failed to create new asset: {str(e)}")
-        db.rollback() # Crucial to rollback the session if a database error occurs
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal Server Error while creating the asset."
-        )
-
-
 # def get_inventory_summary_stats (total_assets, total_valuation, in_stock_count, low_stock_count, out_of_stock_count)
 @router.get("/stats/summary", status_code=status.HTTP_200_OK, response_model=AssetSummary)
 def get_inventory_summary_stats(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    # current_user = Depends(get_current_user)
 ):
     """Fetch aggregated inventory statistics for the dashboard widgets."""
 
-    logger.info(f"GET req in `/assets/stats/summary` by {current_user.email}")
+    # logger.info(f"GET req in `/assets/stats/summary` by {current_user.email}")
+    logger.info("GET req in /assets/stats/summary")
 
     total_assets = db.query(func.count(DBAsset.id)).scalar()
 
@@ -163,6 +89,7 @@ async def list_top_products(
 
     return top_products
 
+
 # for main dashboard sales by category pie chart
 @router.get("/sales/categories", status_code=status.HTTP_200_OK, response_model=list[CategorySalesOut])
 async def get_sales_by_category(
@@ -189,7 +116,7 @@ async def get_sales_by_category(
         if not raw_data:
             return []
 
-        #  CALCULATE THE GRAND TOTAL
+        # CALCULATE THE GRAND TOTAL
         # We need the sum of ALL revenue to calculate the percentages
         grand_total = sum(float(row.revenue) for row in raw_data)
 
@@ -227,10 +154,9 @@ async def get_sales_by_category(
             detail="Internal Server Error while calculating category distribution."
         )
 
-
 # def get_asset_by_id  # (admin & techinician both)
 @router.get("/{asset_id}", status_code=status.HTTP_200_OK, response_model=AssetOut)
-def get_asset_by_id(
+async def get_asset_by_id(
     asset_id: uuid.UUID,
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user) # Automatically secures the route for BOTH roles (RBAC)
@@ -249,6 +175,81 @@ def get_asset_by_id(
         )
 
     return asset
+
+
+# def create_asset / add_new_assest (only admin)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=AssetOut)
+async def create_asset(
+    name: str = Form(...),
+    description: str = Form(...),
+    category: str = Form(...),
+    unit_price: Decimal = Form(...),
+    stock: int = Form(...),
+    min_stock: int = Form(...),
+    asset_image: UploadFile | None = File(None),  # Optional file upload
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
+    """Create a new inventory asset. Strictly restricted to Admins."""
+
+    logger.info(f"POST req in `/assets/` by Admin {current_admin.email}")
+
+    try:
+        # HANDLE OPTIONAL IMAGE UPLOAD & DEFAULT URL
+        image_url = "https://i.ibb.co/tMtqLqWm/container.jpg"
+
+        if asset_image:
+            if asset_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
+                )
+
+            file_bytes = await asset_image.read()
+
+            if len(file_bytes) > 5000000: # 5MB limit
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="File too large. Maximum size is 5MB."
+                )
+
+            image_url = await run_in_threadpool(upload_on_cloudinary, file_bytes)
+
+        # 1. CALCULATE AUTOMATIC STOCK STATUS
+        initial_stock_status = StockStatus.IN_STOCK
+        if stock <= min_stock:
+            initial_stock_status = StockStatus.LOW_STOCK
+
+        # 2. MAP TO DATABASE MODEL
+        new_asset = DBAsset(
+            image_url=image_url,
+            name=name,
+            description=description,
+            category=category,
+            unit_price=unit_price,
+            stock=stock,
+            min_stock=min_stock,
+            stock_status=initial_stock_status
+            # units_sold and total_revenue automatically default to 0
+        )
+
+        # SAVE TO DATABASE
+        db.add(new_asset)
+        db.commit()
+        db.refresh(new_asset)
+
+        return new_asset
+
+    except HTTPException as he:
+        # Catch explicit HTTPExceptions (like file size/type errors) so they don't trigger the 500 fallback
+        raise he
+    except Exception as e:
+        logger.error(f"Failed to create new asset: {str(e)}")
+        db.rollback() # Crucial to rollback the session if a database error occurs
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error while creating the asset."
+        )
 
 
 # def update_asset (only admin)
@@ -282,7 +283,7 @@ async def update_asset(
 
         # HANDLE OPTIONAL IMAGE UPLOAD
         if asset_image:
-            if asset_image.content_type not in settings.ALLOWED_MIME_TYPES:
+            if asset_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
@@ -290,10 +291,10 @@ async def update_asset(
 
             file_bytes = await asset_image.read()
 
-            if len(file_bytes) > 2000000: # 2MB limit
+            if len(file_bytes) > 5000000: # 5MB limit
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File too large. Maximum size is 2MB."
+                    detail="File too large. Maximum size is 5MB."
                 )
 
             old_image_url = asset.image_url

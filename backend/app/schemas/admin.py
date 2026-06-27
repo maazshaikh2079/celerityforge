@@ -1,4 +1,5 @@
 import datetime
+from typing import Literal
 from pydantic import BaseModel, EmailStr, ConfigDict
 from uuid import UUID
 
@@ -28,6 +29,8 @@ class AdminOut(AdminBase):
 
     created_at: datetime.datetime
     updated_at: datetime.datetime
+
+    role: Literal["Admin"] = "Admin"
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -32,6 +32,15 @@ def get_admin_details(db: Session = Depends(get_db)):
     return db.query(DBAdmin).first()
 
 
+@router.get("/me", status_code=status.HTTP_200_OK, response_model=AdminOut)
+def get_my_profile(current_admin: DBAdmin = Depends(get_current_admin)):
+    """Fetch the currently logged-in admin's profile details."""
+
+    logger.info(f"GET req in `/admin/me` by {current_admin.email}")
+
+    return current_admin
+
+
 @router.post("/signup", status_code=status.HTTP_201_CREATED, response_model=dict)
 async def signup_admin(
     # admin_in: AdminSignup,
@@ -64,7 +73,7 @@ async def signup_admin(
         profile_image_url = "https://i.ibb.co/vxLH9d92/default-avatar-light.png"
 
         if profile_image:
-            if profile_image.content_type not in settings.ALLOWED_MIME_TYPES:
+            if profile_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
                raise HTTPException(
                    status_code=status.HTTP_400_BAD_REQUEST,
                    detail="Invalid file type. Only JPEG and PNG are allowed."
@@ -100,16 +109,18 @@ async def signup_admin(
         )
 
         return {
-            "admin_registration": {
-                "message": "Admin registered successfully.",
-                "admin_id": new_admin.id,
+            "status_code": status.HTTP_200_OK,
+            "message": "Admin registered successfully.",
+            "access_token": token,
+            "token_type": "bearer",
+            "admin": {
+                "id": new_admin.id,
                 "profile_image_url": profile_image_url,
                 "name": new_admin.name,
                 "email": new_admin.email,
                 "phone": new_admin.phone,
                 "created_at": new_admin.created_at,
                 "updated_at": new_admin.updated_at,
-                "token": token  # access token
             }
         }
 
@@ -139,7 +150,6 @@ async def login_admin(
         # admin = db.query(DBAdmin).filter(DBAdmin.email == admin_credentials.email).first()
         admin = db.query(DBAdmin).filter(DBAdmin.email == admin_credentials.username).first()
 
-
         if not admin or not pwd_context.verify(admin_credentials.password, admin.password_hash):
             # logger.warning(f"Failed login attempt for email: {admin_credentials.email}")
             logger.warning(f"Failed login attempt for email: {admin_credentials.username}")
@@ -156,18 +166,18 @@ async def login_admin(
         )
 
         return {
+            "status_code": status.HTTP_200_OK,
+            "message": "Admin login successfully.",
             "access_token": token,   # V
             "token_type": "bearer",  # Swagger specifically looks for these two exact keys
-            "admin_login": {
-                "message": "Admin login successfully.",
-                "admin_id": admin.id,
+            "admin": {
+                "id": admin.id,
                 "profile_image_url": admin.profile_image_url,
                 "name": admin.name,
                 "email": admin.email,
                 "phone": admin.phone,
                 "created_at":admin.created_at,
                 "updated_at":admin.updated_at,
-                "token": token  # access token
             }
         }
 
@@ -179,15 +189,6 @@ async def login_admin(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal Server Error during Admin Login."
         )
-
-
-@router.get("/me", status_code=status.HTTP_200_OK, response_model=AdminOut)
-def get_my_profile(current_admin: DBAdmin = Depends(get_current_admin)):
-    """Fetch the currently logged-in admin's profile details."""
-
-    logger.info(f"GET req in `/admin/me` by {current_admin.email}")
-
-    return current_admin
 
 
 @router.patch("/me", status_code=status.HTTP_200_OK, response_model=dict)
@@ -206,7 +207,7 @@ async def update_my_profile(
     try:
         # HANDLE OPTIONAL IMAGE UPLOAD
         if profile_image:
-            if profile_image.content_type not in settings.ALLOWED_MIME_TYPES:
+            if profile_image.content_type not in settings.ALLOWED_IMAGE_MIME_TYPES:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid file type. Only JPEG, PNG, and GIF are allowed."
@@ -279,13 +280,22 @@ async def update_my_password(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect current password."
             )
+            # return {
+            #     "status_code": status.HTTP_401_UNAUTHORIZED,
+            #     "error_message": "Incorrect current password."
+            # }
 
         # PREVENT REUSING THE SAME PASSWORD
         if password_in.current_password == password_in.new_password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New password cannot be the same as the current password."
-            )
+            # raise HTTPException(
+            #     status_code=status.HTTP_400_BAD_REQUEST,
+            #     detail="New password cannot be the same as the current password."
+            # )
+            return {
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "error_message": "New password cannot be the same as the current password."
+            }
+
 
         # HASH AND SAVE NEW PASSWORD
         current_admin.password_hash = pwd_context.hash(password_in.new_password)
@@ -305,3 +315,7 @@ async def update_my_password(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Internal Server Error during password update."
         )
+        # return {
+        #     "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     "error_message": "Internal Server Error during password update."
+        # }

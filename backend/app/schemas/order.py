@@ -1,9 +1,8 @@
 import datetime
 import enum
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from uuid import UUID
 from decimal import Decimal
-from typing import Literal
 
 from app.models.order import OrderStatus
     # PENDING = "Pending"
@@ -56,7 +55,14 @@ class OrderBase(BaseModel):
 
 # schema for create a new order
 class OrderCreate(OrderBase):
-    status: Literal[OrderStatus.PENDING] = OrderStatus.PENDING
+    status: OrderStatus = OrderStatus.PENDING
+
+    @field_validator("status")
+    @classmethod
+    def prevent_cancelled_status(cls, val: OrderStatus):
+        if val == OrderStatus.CANCELLED:
+            raise ValueError("New orders cannot be created with a 'Cancelled' status.")
+        return val
 
 
 class OrderOut(OrderBase):
@@ -67,12 +73,11 @@ class OrderOut(OrderBase):
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
+    model_config = ConfigDict(from_attributes=True) # ORM parsing
 
-    model_config = ConfigDict()
 
-
-class OrderUpdate(OrderBase):
-    # assignee: OrderAssigneeSnapshot | None = None
+class OrderUpdate(BaseModel):
+    assignee: OrderAssigneeSnapshot | None = None
     customer: OrderCustomerSnapshot | None = None
     items: list[OrderItemSnapshot] | None = None
     notes: str | None = None
@@ -85,15 +90,36 @@ class OrderMetadataUpdate(BaseModel):
 
 
 class OrderCancel(BaseModel):
-    status: Literal[OrderStatus.CANCELLED] = OrderStatus.CANCELLED
+    status: OrderStatus = OrderStatus.CANCELLED
+
+    @field_validator("status")
+    @classmethod
+    def enforce_cancelled_status(cls, val: OrderStatus):
+        if val != OrderStatus.CANCELLED:
+            raise ValueError("Invalid status. You can only set the status to 'Cancelled' when using the cancel endpoint.")
+        return val
 
 
 class OrderMarkAsPaid(BaseModel):
-    status: Literal[OrderStatus.PAID] = OrderStatus.PAID
+    status: OrderStatus = OrderStatus.PAID
+
+    @field_validator("status")
+    @classmethod
+    def enforce_paid_status(cls, val: OrderStatus):
+        if val != OrderStatus.PAID:
+            raise ValueError("Invalid status. You can only set the status to 'Paid' when marking an order as paid.")
+        return val
 
 
-# class OrderMakePayment(BaseModel):
-#     status: Literal[OrderStatus.PAID] = OrderStatus.PAID
+class OrderMakePayment(BaseModel):
+    status: OrderStatus = OrderStatus.PAID
+
+    @field_validator("status")
+    @classmethod
+    def enforce_payment_status(cls, val: OrderStatus):
+        if val != OrderStatus.PAID:
+            raise ValueError("Invalid status. Successful payments must set the status to 'Paid'.")
+        return val
 
 
 # --- Summary ---
