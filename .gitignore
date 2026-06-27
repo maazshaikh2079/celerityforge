@@ -1,5 +1,6 @@
 .vscode
 __pycache__
+node_modules
 .venv
 .env
 *-ref.*
@@ -7,4 +8,4 @@ data/*
 pages
 stitch_pc_shop_manager
 init_fa.sh
-frontend
+temp
