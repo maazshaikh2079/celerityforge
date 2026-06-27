@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.models.order import Order as DBOrder, OrderStatus
 from app.models.asset import Asset as DBAsset, StockStatus
 from app.schemas.order import OrderCreate, OrderOut, OrderCancel, OrderUpdate, OrderMetadataUpdate, OrderMarkAsPaid, OrderStatDetail, OrderStatsSummary, MonthlyRevenueOut, RazorpayVerify
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_admin
 from app.core.config import settings
 from app.services.razorpay import rzp_payment_service
 
@@ -174,12 +174,16 @@ async def get_monthly_revenue(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc).year,
         description="The year to fetch revenue for (defaults to current year)"
     ),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
 ):
     """
     Retrieve monthly revenue totals for a specific year to power the dashboard bar chart.
     Only counts orders that are successfully PAID.
     """
+
+    logger.info(f"GET req in `/orders/revenue/monthly` by {current_admin.email}")
+
     try:
         query_result = db.query(
             extract('month', DBOrder.created_at).label("month_num"),
