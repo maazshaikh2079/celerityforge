@@ -115,14 +115,16 @@ const InventoryPage = () => {
   //       (a.stock > 0 && a.stock <= (a.min_stock || 5))
   //   ).length;
 
-  const lowStockCount = inventoryStatsSummary?.low_stock || 0;
+  const lowStockCount =
+    inventoryStatsSummary?.stock_distribution?.low_stock || 0;
 
   // const outOfStockCount =
   //   inventoryStatsSummary?.out_of_stock ||
   //   assets.filter((a) => a.stock_status === "Out of Stock" || a.stock === 0)
   //     .length;
 
-  const outOfStockCount = inventoryStatsSummary?.out_of_stock || 0;
+  const outOfStockCount =
+    inventoryStatsSummary?.stock_distribution?.out_of_stock || 0;
 
   return (
     <div className="flex flex-col gap-8 max-w-[1440px] mx-auto w-full relative">
