@@ -1,7 +1,8 @@
 import { createContext, useState, useEffect } from "react";
 import { useAdminAuth } from "../hooks/admin-auth-hook.js";
-import technicianService from "../services/technician.service.js";
 import orderService from "../services/order.service.js";
+import assetService from "../services/asset.service.js";
+import technicianService from "../services/technician.service.js";
 
 export const AdminContext = createContext();
 
@@ -23,6 +24,9 @@ const AdminContextProvider = (props) => {
   const [orders, setOrders] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [ordersStatsSummary, setOrdersStatsSummary] = useState([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+  const [salesByCategory, setSalesByCategory] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
   const [technicians, setTechnicians] = useState([]);
 
   // loads recent 100 orders by default
@@ -60,8 +64,6 @@ const AdminContextProvider = (props) => {
   const loadAllOrdersStatsSummary = async (adminToken) => {
     try {
       const ordersStatsSummary = await orderService.getStatsSummary(adminToken);
-      // console.log(ordersStatsSummary);
-
       setOrdersStatsSummary(ordersStatsSummary);
     } catch (err) {
       console.error(
@@ -71,6 +73,52 @@ const AdminContextProvider = (props) => {
     }
   };
 
+  // orders
+  const loadMonthlyRevenue = async (
+    year = new Date().getFullYear(),
+    adminToken
+  ) => {
+    try {
+      const monthlyRevenue = await orderService.getMonthlyRevenue(
+        year,
+        adminToken
+      );
+      setMonthlyRevenue(monthlyRevenue);
+    } catch (err) {
+      console.error(
+        "log> Failed to fetch monthly revenue data - Error:",
+        err.response?.data?.message || err.message
+      );
+    }
+  };
+
+  // assets
+  const loadSalesByCategory = async (adminToken) => {
+    try {
+      const salesByCategory = await assetService.getSalesByCategory(adminToken);
+      setSalesByCategory(salesByCategory);
+    } catch (err) {
+      console.error(
+        "log> Failed to fetch sales by categories - Error:",
+        err.response?.data?.message || err.message
+      );
+    }
+  };
+
+  // assets
+  const loadTopProducts = async (limit = 5, adminToken) => {
+    try {
+      const topProducts = await assetService.getTopProducts(limit, adminToken);
+      setTopProducts(topProducts);
+    } catch (err) {
+      console.error(
+        "log> Failed to fetch top products - Error:",
+        err.response?.data?.message || err.message
+      );
+    }
+  };
+
+  // technicians
   const loadTechnicians = async (adminToken) => {
     try {
       const technicians = await technicianService.listTechnicians(adminToken);
@@ -96,6 +144,21 @@ const AdminContextProvider = (props) => {
   }, [adminToken]);
 
   useEffect(() => {
+    // orders
+    adminToken && loadMonthlyRevenue(new Date().getFullYear(), adminToken);
+  }, [adminToken]);
+
+  useEffect(() => {
+    // assets
+    adminToken && loadSalesByCategory(adminToken);
+  }, [adminToken]);
+
+  useEffect(() => {
+    // assets
+    adminToken && loadTopProducts(5, adminToken);
+  }, [adminToken]);
+
+  useEffect(() => {
     adminToken && loadAllOrdersStatsSummary(adminToken);
   }, [adminToken]);
 
@@ -114,10 +177,6 @@ const AdminContextProvider = (props) => {
     adminLoginHandler,
     adminLogoutHandler,
 
-    technicians,
-    setTechnicians,
-    loadTechnicians,
-
     orders,
     setOrders,
     loadOrders,
@@ -129,6 +188,22 @@ const AdminContextProvider = (props) => {
     ordersStatsSummary,
     setOrdersStatsSummary,
     loadAllOrdersStatsSummary,
+
+    monthlyRevenue,
+    setMonthlyRevenue,
+    loadMonthlyRevenue,
+
+    salesByCategory,
+    setSalesByCategory,
+    loadSalesByCategory,
+
+    topProducts,
+    setTopProducts,
+    loadTopProducts,
+
+    technicians,
+    setTechnicians,
+    loadTechnicians,
   };
 
   return (
