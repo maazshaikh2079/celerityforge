@@ -85,6 +85,11 @@ const UpdateAssetPage = () => {
     }
   }, [assetId, adminToken, navigate]);
 
+  const refreshContextData = () => {
+    loadInventoryAssets();
+    loadInventoryStatsSummary();
+  };
+
   // Handle Image Selection
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -125,10 +130,8 @@ const UpdateAssetPage = () => {
         adminToken
       );
 
-      // console.log("Updated Asset: ", updatedAsset);
       if (updatedAsset) {
-        loadInventoryAssets();
-        loadInventoryStatsSummary();
+        refreshContextData(); // Referesh context data to update InventoryPage.jsx components(cards & table)
       }
 
       toast.success("Asset updated successfully!");

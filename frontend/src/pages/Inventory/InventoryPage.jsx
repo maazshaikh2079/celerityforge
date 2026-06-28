@@ -98,30 +98,10 @@ const InventoryPage = () => {
   // Inventory Stats Summary Variables
   const totalAssetsCount = inventoryStatsSummary?.total_assets || 0;
 
-  // const totalValuation =
-  //   inventoryStatsSummary?.total_valuation ||
-  //   assets.reduce(
-  //     (sum, asset) => sum + asset.stock * (asset.unit_price || 0),
-  //     0
-  //   );
-
   const totalValuation = inventoryStatsSummary?.total_valuation || 0;
-
-  // const lowStockCount =
-  //   inventoryStatsSummary?.low_stock ||
-  //   assets.filter(
-  //     (a) =>
-  //       a.stock_status === "Low Stock" ||
-  //       (a.stock > 0 && a.stock <= (a.min_stock || 5))
-  //   ).length;
 
   const lowStockCount =
     inventoryStatsSummary?.stock_distribution?.low_stock || 0;
-
-  // const outOfStockCount =
-  //   inventoryStatsSummary?.out_of_stock ||
-  //   assets.filter((a) => a.stock_status === "Out of Stock" || a.stock === 0)
-  //     .length;
 
   const outOfStockCount =
     inventoryStatsSummary?.stock_distribution?.out_of_stock || 0;
@@ -131,9 +111,6 @@ const InventoryPage = () => {
       {/* ── HEADER SECTION ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          {/* <div className="w-12 h-12 rounded-xl bg-surface-container-high border border-border flex items-center justify-center text-primary">
-            <FiPackage className="w-6 h-6" />
-          </div> */}
           <div>
             <h1 className="font-display text-headline-md font-bold text-on-surface tracking-tight leading-none mb-1">
               Inventory Registry

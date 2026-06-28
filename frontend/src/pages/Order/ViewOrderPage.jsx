@@ -69,9 +69,17 @@ const ViewOrderPage = () => {
   const refreshContextData = () => {
     if (isAdmin) {
       adminCtx.loadOrders(adminCtx.adminToken);
+      adminCtx.loadRecentOrders(adminCtx.adminToken);
       adminCtx.loadAllOrdersStatsSummary(adminCtx.adminToken);
+      adminCtx.loadMonthlyRevenue(
+        new Date().getFullYear(),
+        adminCtx.adminToken
+      );
+      adminCtx.loadSalesByCategory(adminCtx.adminToken);
+      adminCtx.loadTopProducts(5, adminCtx.adminToken);
     } else {
       techCtx.loadTechnicianOrders(techCtx.technicianToken);
+      techCtx.loadTechnicianRecentOrders(techCtx.technicianToken);
       techCtx.loadTechnicianOrdersStatsSummary(techCtx.technicianToken);
     }
   };

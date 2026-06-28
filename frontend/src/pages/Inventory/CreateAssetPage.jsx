@@ -13,6 +13,7 @@ import {
 
 import { AdminContext } from "../../contexts/AdminContext.jsx";
 import assetService from "../../services/asset.service.js";
+import { AppContext } from "../../contexts/AppContext.jsx";
 
 const ASSET_CATEGORIES = [
   "GPU",
@@ -31,6 +32,8 @@ const ASSET_CATEGORIES = [
 const CreateAssetPage = () => {
   const navigate = useNavigate();
   const { adminToken } = useContext(AdminContext);
+  const { loadInventoryAssets, loadInventoryStatsSummary } =
+    useContext(AppContext);
   const fileInputRef = useRef(null);
 
   // Form State
@@ -47,6 +50,11 @@ const CreateAssetPage = () => {
 
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const refreshContextData = () => {
+    loadInventoryAssets();
+    loadInventoryStatsSummary();
+  };
 
   // Handle Image Selection
   const handleImageChange = (e) => {
@@ -92,6 +100,8 @@ const CreateAssetPage = () => {
 
       toast.success("Asset created successfully!");
       navigate("/inventory/assets"); // Route back to inventory on success
+
+      refreshContextData(); // Referesh context data to update InventoryPage.jsx components(cards & table)
     } catch (err) {
       toast.error(err?.detail || err?.message || "Failed to create asset.");
     } finally {

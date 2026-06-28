@@ -44,12 +44,11 @@ const DashboardPage = () => {
     ? adminCtx?.recentOrders
     : techCtx?.technicianRecentOrders;
 
-  const {
-    inventoryStatsSummary,
-    monthlyRevenue,
-    salesByCategory,
-    topProducts,
-  } = appCtx || {};
+  // Inventory stats remain in AppContext
+  const { inventoryStatsSummary } = appCtx || {};
+
+  // Analytics moved to AdminContext
+  const { monthlyRevenue, salesByCategory, topProducts } = adminCtx || {};
 
   // --- HELPERS ---
   // returns "₹num"
@@ -155,7 +154,6 @@ const DashboardPage = () => {
         {/* Total Orders */}
         <div className="bg-surface-container-lowest border border-border rounded-xl p-5 flex flex-col gap-4 relative overflow-hidden group">
           <div className="flex justify-between items-start">
-            {/* <div className="p-3 bg-surface-container-high text-on-surface rounded-xl"> */}
             <div className="p-3 bg-primary/10 text-on-surface rounded-xl">
               <FiShoppingCart className="w-5 h-5" />
             </div>

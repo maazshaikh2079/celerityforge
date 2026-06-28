@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { AdminContext } from "../../contexts/AdminContext.jsx";
-import { TechnicianContext } from "../../contexts/TechnicianContext.jsx";
-import assetService from "../../services/asset.service.js";
 import toast from "react-hot-toast";
 import {
   FiArrowLeft,
@@ -14,6 +11,11 @@ import {
   FiLoader,
 } from "react-icons/fi";
 
+import assetService from "../../services/asset.service.js";
+import { AdminContext } from "../../contexts/AdminContext.jsx";
+import { TechnicianContext } from "../../contexts/TechnicianContext.jsx";
+import { AppContext } from "../../contexts/AppContext.jsx";
+
 const ViewAssetPage = () => {
   const { assetId } = useParams();
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ const ViewAssetPage = () => {
   const { isAdminLoggedIn, adminToken } = useContext(AdminContext);
   const { isTechnicianLoggedIn, technicianToken } =
     useContext(TechnicianContext);
+  const { loadInventoryAssets, loadInventoryStatsSummary } =
+    useContext(AppContext);
 
   const currentUserToken = isAdminLoggedIn ? adminToken : technicianToken;
 
@@ -63,6 +67,11 @@ const ViewAssetPage = () => {
     }
   }, [assetId, currentUserToken]);
 
+  const refreshContextData = () => {
+    loadInventoryAssets();
+    loadInventoryStatsSummary();
+  };
+
   // Actions Logic
   const handleEdit = () => {
     navigate(`/inventory/assets/${assetId}/update`);
@@ -82,6 +91,7 @@ const ViewAssetPage = () => {
       toast.success("Asset marked out of stock successfully");
       setIsDropdownOpen(false);
       fetchAsset(); // Refresh data to show new status
+      refreshContextData(); // Referesh context data to update InventoryPage.jsx components(cards & table)
     } catch (err) {
       toast.error(
         err?.detail || err?.message || "Failed to update stock status"
@@ -104,6 +114,7 @@ const ViewAssetPage = () => {
       await assetService.deleteAsset(assetId, adminToken);
       toast.success("Asset deleted successfully");
       navigate("/inventory/assets"); // Redirect to list after deletion
+      refreshContextData(); // Referesh context data to update InventoryPage.jsx components(cards & table)
     } catch (err) {
       toast.error(err?.detail || err?.message || "Failed to delete asset");
       setIsActionLoading(false);

@@ -240,16 +240,20 @@ const CreateOrderPage = () => {
 
       if (isAdmin) {
         adminCtx.loadOrders(token);
+        adminCtx.loadRecentOrders(token);
         adminCtx.loadAllOrdersStatsSummary(token);
+        adminCtx.loadMonthlyRevenue(new Date().getFullYear(), token);
+        adminCtx.loadSalesByCategory(token);
+        adminCtx.loadTopProducts(5, token);
       } else {
         techCtx.loadTechnicianOrders(token);
+        techCtx.loadTechnicianRecentOrders(token);
         techCtx.loadTechnicianOrdersStatsSummary(token);
       }
 
       toast.success("Order created successfully!");
       navigate("/orders");
     } catch (err) {
-      // FIX: Safely extract FastAPI 422 Array of Error Objects to prevent React crashes
       let errorMessage = "Failed to create order";
 
       if (err?.detail) {
