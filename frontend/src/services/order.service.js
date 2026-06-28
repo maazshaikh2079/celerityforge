@@ -44,14 +44,17 @@ const getStatsSummary = async (currentUserToken) => {
 };
 
 // GET /api/v1/orders/revenue/monthly — Get monthly revenue (optional year param)
-const getMonthlyRevenue = async (year) => {
+const getMonthlyRevenue = async (year, adminToken) => {
   try {
     const params = {};
     if (year !== undefined) params.year = year;
 
     const response = await axios.get(
       `${BASE_URL}${API_PATHS.ORDERS.GET_MONTHLY_REVENUE}`,
-      { params }
+      {
+        params: params,
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }
     );
     return response.data;
   } catch (error) {
