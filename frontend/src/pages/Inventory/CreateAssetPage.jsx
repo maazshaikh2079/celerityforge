@@ -18,15 +18,15 @@ import { AppContext } from "../../contexts/AppContext.jsx";
 const ASSET_CATEGORIES = [
   "GPU",
   "CPU",
-  "STORAGE",
-  "MEMORY",
-  "DESKTOPS",
-  "SERVERS",
-  "NETWORKING",
-  "PERIPHERALS",
-  "COMPONENTS",
-  "MICROCONTROLLERS",
-  "LAPTOPS",
+  "Storage",
+  "Memory",
+  "Desktops",
+  "Servers",
+  "Networking",
+  "Peripherals",
+  "Components",
+  "Microcontrollers",
+  "Laptops",
 ];
 
 const CreateAssetPage = () => {
