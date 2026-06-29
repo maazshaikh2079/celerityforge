@@ -20,7 +20,7 @@ import {
 const ViewTechnicianPage = () => {
   const { technicianId } = useParams();
   const navigate = useNavigate();
-  const { adminToken } = useContext(AdminContext);
+  const { adminToken, loadTechnicians } = useContext(AdminContext);
 
   const [technician, setTechnician] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,6 +63,10 @@ const ViewTechnicianPage = () => {
     }
   }, [adminToken, technicianId]);
 
+  const refreshContextData = () => {
+    loadTechnicians(adminToken);
+  };
+
   // Handle Availability Toggle (Admin Override)
   const handleToggleAvailability = async () => {
     if (!technician) return;
@@ -78,6 +82,7 @@ const ViewTechnicianPage = () => {
       );
 
       setTechnician({ ...technician, is_available: newStatus });
+      refreshContextData(); // Referesh context data to update technician and availability cards on TechniciansPage.jsx
 
       toast.success(
         newStatus ? "Status updated: Available" : "Status updated: Unavailable"
