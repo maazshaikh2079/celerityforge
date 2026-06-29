@@ -2,6 +2,12 @@
 
 **CelerityForge** is a robust, full-stack Inventory & Staff Management System designed to streamline technical operations, asset tracking, and order fulfillment. Built with a high-performance FastAPI backend and a dynamic React frontend, it features role-based access control, interactive analytics, and seamless payment processing.
 
+## Video Demo
+
+<video src="https://github.com/user-attachments/assets/2ed01202-9e70-4685-9ba8-a4a036aa63f0" width="100%" controls autoplay muted loop>
+  Your browser does not support the video tag.
+</video>
+
 ## Key Features
 
 - **Role-Based Access Control (RBAC):** Distinct workflows and permissions for **Admins** (full system control, reassignment, global analytics) and **Technicians** (task execution, localized order management).
@@ -14,7 +20,7 @@
 ## Database Schema
 
 <p align="center">
-  <img src="./docs/CelerityForge-DB-Schema-Diagram.png" alt="CelerityForge Database Schema" width="900">
+  <img src="https://github.com/user-attachments/assets/a845e265-7913-4104-b240-537ca8b54c90" alt="CelerityForge-Database-Schema" width="900">
 </p>
 
 ## Tech Stack
