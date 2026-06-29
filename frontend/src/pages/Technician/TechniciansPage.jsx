@@ -25,9 +25,6 @@ const TechniciansPage = () => {
       {/* ── HEADER SECTION ── */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          {/* <div className="w-12 h-12 rounded-xl bg-surface-container-high border border-border flex items-center justify-center text-primary">
-            <FiUsers className="w-6 h-6" />
-          </div> */}
           <div>
             <h1 className="font-display text-headline-md font-bold text-on-surface tracking-tight leading-none mb-1">
               Technician Registry
